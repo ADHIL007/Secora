@@ -1,6 +1,6 @@
 ﻿namespace Secora.Abstractions
 {
-    internal interface IPluginUiPage
+    public interface IPluginUiPage
     {
         string Title { get; }
         Type ComponentType { get; }
