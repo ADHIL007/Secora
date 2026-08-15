@@ -10,7 +10,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddSecora(this IServiceCollection services)
     {
-        services.AddTransient<IPluginLoader, PluginLoader>();
+        services.AddSingleton<IPluginLoader, PluginLoader>();
         services.AddSingleton<IPluginManager, PluginManager>();
 
         services.AddRazorComponents()

@@ -1,6 +1,14 @@
 ﻿@page "/Secora"
+@using Secora.Abstractions
+@inject IPluginManager PluginManager
+
 <h3>SecoraApp</h3>
 
-@code {
-
-}
+<ul>
+    @foreach (var plugin in PluginManager.Plugins)
+    {
+        <li>
+            @plugin.Name
+        </li>
+    }
+</ul>

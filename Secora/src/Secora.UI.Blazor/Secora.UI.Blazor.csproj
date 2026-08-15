@@ -15,4 +15,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.18" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Secora.Abstractions\Secora.Abstractions.csproj" />
+  </ItemGroup>
+
 </Project>

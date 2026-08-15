@@ -16,7 +16,8 @@ namespace Secora.Core.PluginLoader
         private void LoadAssemblies()
         {
             foreach (string dll in Directory.GetFiles(
-                AppContext.BaseDirectory, "*.dll"))
+    AppContext.BaseDirectory,
+    "*.SecoraPlugin.dll"))
             {
                 Assembly assembly =
                     AssemblyLoadContext.Default.LoadFromAssemblyPath(dll);
