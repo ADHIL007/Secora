@@ -1,4 +1,4 @@
-﻿using Secora.Abstractions;
+using Secora.Abstractions;
 
 namespace Sample.SecoraPlugin;
 
@@ -21,5 +21,5 @@ public class SamplePlugin : ISecoraPlugin
 
     string ISecoraPlugin.Description => "Sample plugin for testing";
 
-    IPluginUiPage ISecoraPlugin.Page => throw new NotImplementedException();
+    IPluginUiPage ISecoraPlugin.Page => new SamplePluginUiPage();
 }

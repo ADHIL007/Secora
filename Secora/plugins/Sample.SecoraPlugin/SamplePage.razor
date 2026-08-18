@@ -1,0 +1,56 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="sample-page">
+
+    <div class="sp-hero">
+        <h2 class="sp-hero-title">Sample Plugin</h2>
+        <p class="sp-hero-sub">A demonstration plugin for the Secora runtime.</p>
+    </div>
+
+    <div class="sp-stats-grid">
+        <div class="sp-stat-card">
+            <span class="sp-stat-label">Author</span>
+            <span class="sp-stat-value">Secora</span>
+        </div>
+        <div class="sp-stat-card">
+            <span class="sp-stat-label">Version</span>
+            <span class="sp-stat-value">1.0.0</span>
+        </div>
+        <div class="sp-stat-card">
+            <span class="sp-stat-label">Status</span>
+            <span class="sp-stat-value sp-status-active">Active</span>
+        </div>
+    </div>
+
+    <div class="sp-section">
+        <h3 class="sp-section-title">About</h3>
+        <p class="sp-section-body">
+            This is the Sample plugin — it ships with the Secora framework to verify that
+            the plugin loader, manager, and UI rendering pipeline are all working correctly.
+        </p>
+    </div>
+
+    <div class="sp-section">
+        <h3 class="sp-section-title">Quick Actions</h3>
+        <div class="sp-actions">
+            <button class="sp-btn sp-btn-primary" @onclick="OnPing">
+                ⚡ Ping Plugin
+            </button>
+            <button class="sp-btn sp-btn-ghost" @onclick="OnReset">
+                🔄 Reset Counter
+            </button>
+        </div>
+        @if (_pingCount > 0)
+        {
+            <p class="sp-ping-result">Pinged <strong>@_pingCount</strong> time(s) — plugin is alive!</p>
+        }
+    </div>
+
+</div>
+
+@code {
+    private int _pingCount = 0;
+
+    private void OnPing()  => _pingCount++;
+    private void OnReset() => _pingCount = 0;
+}

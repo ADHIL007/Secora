@@ -12,17 +12,99 @@
     <base href="/" />
 </head>
 <body>
-    <h3>SecoraApp</h3>
+    <div class="secora-shell">
 
-    <ul class="list">
-        @foreach (var plugin in PluginManager.Plugins)
-        {
-            <li>
-                @plugin.Name
-            </li>
-        }
-    </ul>
+        <!-- ── Sidebar ── -->
+        <aside class="secora-sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-logo">
+                    <img src="_content/Secora.UI.Blazor/Logo.png" alt="Secora" />
+                </span>
+            </div>
+
+            <span class="sidebar-section-label">Plugins</span>
+
+            <ul class="plugin-list">
+                @if (!PluginManager.Plugins.Any())
+                {
+                    <li class="plugin-empty">
+                        <span class="plugin-empty-icon">🧩</span>
+                        <span class="plugin-empty-text">No plugins loaded</span>
+                    </li>
+                }
+                else
+                {
+                    @foreach (var plugin in PluginManager.Plugins)
+                    {
+                        <li class="plugin-item @(SelectedPlugin == plugin ? "active" : "")"
+                            @onclick="() => SelectPlugin(plugin)">
+                            <span class="plugin-item-icon">🧩</span>
+                            <span class="plugin-item-info">
+                                <span class="plugin-item-name">@plugin.Name</span>
+                                <span class="plugin-item-version">v@plugin.Version</span>
+                            </span>
+                        </li>
+                    }
+                }
+            </ul>
+
+            <div class="sidebar-footer">
+                <span class="plugin-count-badge">
+                    <span class="badge-dot"></span>
+                    @PluginManager.Plugins.Count plugin(s) loaded
+                </span>
+            </div>
+        </aside>
+
+        <!-- ── Main content ── -->
+        <main class="secora-main">
+            @if (SelectedPlugin is null)
+            {
+                <div class="welcome-state">
+                    <span class="welcome-icon">⚡</span>
+                    <span class="welcome-text">Select a plugin</span>
+                    <span class="welcome-subtext">Choose a plugin from the sidebar to view its details.</span>
+                </div>
+            }
+            else
+            {
+                <div class="main-header">
+                    <h1 class="main-title">@SelectedPlugin.Page?.Title ?? SelectedPlugin.Name</h1>
+                    <p class="main-subtitle">by @SelectedPlugin.Author &nbsp;·&nbsp; v@SelectedPlugin.Version</p>
+                </div>
+
+                @if (SelectedPlugin.Page?.ComponentType is Type componentType)
+                {
+                    <DynamicComponent Type="componentType" />
+                }
+                else
+                {
+                    <div class="plugin-detail-card">
+                        <div class="card-header">
+                            <div class="card-icon">🧩</div>
+                            <div class="card-title-group">
+                                <div class="card-title">@SelectedPlugin.Name</div>
+                                <div class="card-author">by @SelectedPlugin.Author</div>
+                            </div>
+                            <span class="card-version-pill">v@SelectedPlugin.Version</span>
+                        </div>
+                        <p class="card-description">@SelectedPlugin.Description</p>
+                    </div>
+                }
+            }
+        </main>
+
+    </div>
 
     <script src="_framework/blazor.server.js"></script>
 </body>
 </html>
+
+@code {
+    private ISecoraPlugin? SelectedPlugin { get; set; }
+
+    private void SelectPlugin(ISecoraPlugin plugin)
+    {
+        SelectedPlugin = plugin == SelectedPlugin ? null : plugin;
+    }
+}
