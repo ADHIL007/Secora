@@ -14,6 +14,7 @@ namespace Secora.AspNetCore.Extensions
     {
         public static WebApplication UseSecora(this WebApplication app)
         {
+            app.MapStaticAssets();
             app.UseAntiforgery();
             app.MapSecora();
 
