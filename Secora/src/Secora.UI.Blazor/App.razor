@@ -1,0 +1,28 @@
+@page "/Secora"
+@using Secora.Abstractions
+@inject IPluginManager PluginManager
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secora</title>
+    <link rel="stylesheet" href="_content/Secora.UI.Blazor/secora.css" />
+    <base href="/" />
+</head>
+<body>
+    <h3>SecoraApp</h3>
+
+    <ul class="list">
+        @foreach (var plugin in PluginManager.Plugins)
+        {
+            <li>
+                @plugin.Name
+            </li>
+        }
+    </ul>
+
+    <script src="_framework/blazor.server.js"></script>
+</body>
+</html>

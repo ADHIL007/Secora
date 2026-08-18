@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,7 +14,8 @@ namespace Secora.AspNetCore.Extensions
     {
         public static WebApplication UseSecora(this WebApplication app)
         {
-            app.MapStaticAssets();
+            app.UseStaticFiles();
+            app.UseCors("SecoraPolicy");
             app.UseAntiforgery();
             app.MapSecora();
 

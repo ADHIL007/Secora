@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Secora.Abstractions;
 using Secora.Core.PluginLoader;
 using Secora.Core.PluginManager;
@@ -12,6 +12,17 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<IPluginLoader, PluginLoader>();
         services.AddSingleton<IPluginManager, PluginManager>();
+
+        services.AddCors(options =>
+        {
+            options.AddPolicy("SecoraPolicy", policy =>
+            {
+                policy.SetIsOriginAllowed(_ => true)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials();
+            });
+        });
 
         services.AddRazorComponents()
                   .AddInteractiveServerComponents();
