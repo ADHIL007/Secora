@@ -28,6 +28,7 @@ namespace Secora.Core.PluginManager
             foreach (var plugin in _pluginLoader.DiscoverPlugins())
             {
                 _plugins.Add(plugin);
+
             }
         }
 

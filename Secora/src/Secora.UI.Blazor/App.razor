@@ -13,63 +13,8 @@
     <base href="/" />
 </head>
 <body>
-    <div class="secora-shell">
-
-        <Sidebar ActiveView="@ActiveView"
-                 OnNavigate="OnNavigate"
-                 OnNavigatePlugin="OnNavigatePlugin" />
-
-        <main class="secora-main">
-            @if (ActiveView == "dashboard")
-            {
-                <Dashboard />
-            }
-            else if (SelectedPlugin is not null)
-            {
-                <div class="main-header">
-                    <h1 class="main-title">@(SelectedPlugin.Page?.Title ?? SelectedPlugin.Name)</h1>
-                    <p class="main-subtitle">by @SelectedPlugin.Author &nbsp;·&nbsp; v@SelectedPlugin.Version</p>
-                </div>
-
-                @if (SelectedPlugin.Page?.ComponentType is Type componentType)
-                {
-                    <DynamicComponent Type="componentType" />
-                }
-                else
-                {
-                    <div class="plugin-detail-card">
-                        <div class="card-header">
-                            <div class="card-title-group">
-                                <div class="card-title">@SelectedPlugin.Name</div>
-                                <div class="card-author">by @SelectedPlugin.Author</div>
-                            </div>
-                            <span class="card-version-pill">v@SelectedPlugin.Version</span>
-                        </div>
-                        <p class="card-description">@SelectedPlugin.Description</p>
-                    </div>
-                }
-            }
-        </main>
-
-    </div>
+    <SecoraApp @rendermode="RenderMode.InteractiveServer" />
 
     <script src="_framework/blazor.server.js"></script>
 </body>
 </html>
-
-@code {
-    private string ActiveView { get; set; } = "dashboard";
-    private ISecoraPlugin? SelectedPlugin { get; set; }
-
-    private void OnNavigate(string view)
-    {
-        ActiveView = view;
-        SelectedPlugin = null;
-    }
-
-    private void OnNavigatePlugin(ISecoraPlugin plugin)
-    {
-        SelectedPlugin = plugin;
-        ActiveView = plugin.Name;
-    }
-}
