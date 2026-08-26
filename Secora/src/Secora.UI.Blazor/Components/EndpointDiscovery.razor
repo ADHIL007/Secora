@@ -1,0 +1,140 @@
+@namespace Secora.UI.Blazor.Components
+@using Secora.Abstractions
+@using Secora.Core
+@inject EndPointScanner Scanner
+
+<div class="dashboard">
+    <div class="dash-header">
+        <h1 class="dash-title">Endpoint Discovery</h1>
+        <p class="dash-subtitle">View and filter all discovered endpoints</p>
+    </div>
+
+    <!-- Search and filter -->
+    <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+        <input type="text" @bind="SearchQuery" @bind:event="oninput" placeholder="Search paths..." 
+               style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; width: 300px; font-size: 13px; outline: none;" />
+        
+        <div style="display: flex; gap: 8px;">
+            <button class="dash-chip @(ActiveFilter == "All" ? "active" : "")" @onclick='() => SetFilter("All")'>All</button>
+            <button class="dash-chip @(ActiveFilter == "Authenticated" ? "active" : "")" @onclick='() => SetFilter("Authenticated")'>Authenticated</button>
+            <button class="dash-chip @(ActiveFilter == "Open" ? "active" : "")" @onclick='() => SetFilter("Open")'>Open</button>
+        </div>
+
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary);">
+            <input type="checkbox" id="show-infra" @bind="ShowInfrastructure" style="cursor: pointer;" />
+            <label for="show-infra" style="cursor: pointer;">Show Infrastructure Routes</label>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div style="background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+        <table class="dash-table">
+            <thead>
+                <tr>
+                    <th style="width: 15%">Method</th>
+                    <th style="width: 30%">Path</th>
+                    <th style="width: 15%">Auth</th>
+                    <th style="width: 25%">Response Types</th>
+                    <th style="width: 15%">Category</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ep in FilteredEndpoints)
+                {
+                    <tr>
+                        <td>
+                            @foreach(var m in ep.HttpMethods)
+                            {
+                                <span style="font-weight: 600; margin-right: 4px; color: var(--text-primary);">@m</span>
+                            }
+                        </td>
+                        <td class="dash-td-name" style="font-family: monospace;">@ep.Path</td>
+                        <td>
+                            @if (ep.RequiresAuthorization)
+                            {
+                                <span class="dash-badge-active">Protected</span>
+                            }
+                            else
+                            {
+                                <span style="color: var(--text-muted); font-size: 11px; font-weight: 500;">Open</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!ep.ResponseTypes.Any())
+                            {
+                                <span style="color: var(--text-muted); font-size: 11px;">-</span>
+                            }
+                            @foreach(var r in ep.ResponseTypes)
+                            {
+                                <div style="font-size: 11px; margin-bottom: 2px;">
+                                    <span style="font-weight: 600;">@r.StatusCode</span> @(r.TypeName != null ? $"({r.TypeName})" : "")
+                                </div>
+                            }
+                        </td>
+                        <td>
+                            @if (ep.Category.StartsWith("Infrastructure"))
+                            {
+                                <span style="font-size: 11px; color: #a855f7; background: #faf5ff; padding: 2px 6px; border-radius: 4px; border: 1px solid #e9d5ff;">
+                                    @ep.Category.Split(':').LastOrDefault()
+                                </span>
+                            }
+                            else
+                            {
+                                <span style="font-size: 11px; color: var(--text-muted);">API</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (!FilteredEndpoints.Any())
+        {
+            <div class="dash-empty" style="text-align: center; padding: 40px 0;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.3; margin-bottom: 8px;">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <div>No endpoints found matching your criteria.</div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string InitialFilter { get; set; } = "All";
+
+    private string SearchQuery { get; set; } = "";
+    private string ActiveFilter { get; set; } = "All";
+    private bool ShowInfrastructure { get; set; } = false;
+    
+    private List<SecoraEndpoint> AllEndpoints = new();
+
+    protected override void OnInitialized()
+    {
+        AllEndpoints = Scanner.GetEndpoints().ToList();
+    }
+    
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(InitialFilter) && ActiveFilter != InitialFilter)
+        {
+            ActiveFilter = InitialFilter;
+        }
+    }
+
+    private void SetFilter(string filter)
+    {
+        ActiveFilter = filter;
+    }
+
+    private IEnumerable<SecoraEndpoint> FilteredEndpoints => AllEndpoints
+        .Where(e => ShowInfrastructure || e.Category == "Application:UserAPI")
+        .Where(e => 
+            (ActiveFilter == "All") ||
+            (ActiveFilter == "Authenticated" && e.RequiresAuthorization) ||
+            (ActiveFilter == "Open" && !e.RequiresAuthorization)
+        )
+        .Where(e => string.IsNullOrWhiteSpace(SearchQuery) || e.Path.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+}

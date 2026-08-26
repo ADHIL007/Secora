@@ -11,7 +11,11 @@
     <main class="secora-main">
         @if (ActiveView == "dashboard")
         {
-            <Dashboard />
+            <Dashboard OnFilterSelected="HandleFilterSelected" />
+        }
+        else if (ActiveView == "endpoint-discovery")
+        {
+            <EndpointDiscovery InitialFilter="@DiscoveryFilter" />
         }
         else if (SelectedPlugin is not null)
         {
@@ -45,16 +49,27 @@
 @code {
     private string ActiveView { get; set; } = "dashboard";
     private ISecoraPlugin? SelectedPlugin { get; set; }
+    private string DiscoveryFilter { get; set; } = "All";
 
     private void OnNavigate(string view)
     {
         ActiveView = view;
         SelectedPlugin = null;
+        if (view == "endpoint-discovery")
+        {
+            DiscoveryFilter = "All";
+        }
     }
 
     private void OnNavigatePlugin(ISecoraPlugin plugin)
     {
         SelectedPlugin = plugin;
         ActiveView = plugin.Name;
+    }
+
+    private void HandleFilterSelected(string filter)
+    {
+        DiscoveryFilter = filter;
+        ActiveView = "endpoint-discovery";
     }
 }

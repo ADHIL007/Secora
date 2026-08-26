@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Secora.Abstractions\Secora.Abstractions.csproj" />
+    <ProjectReference Include="..\Secora.Core\Secora.Core.csproj" />
   </ItemGroup>
 
 </Project>

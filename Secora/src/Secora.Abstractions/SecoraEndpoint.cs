@@ -1,4 +1,4 @@
-﻿namespace Secora.Abstractions;
+namespace Secora.Abstractions;
 
 /// <summary>
 /// A simplified representation of an API endpoint for the Secora UI.
@@ -14,6 +14,11 @@ public class SecoraEndpoint
     /// The HTTP Path pattern (e.g., "/api/products/{id}")
     /// </summary>
     public string Path { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Category of the endpoint (e.g. Application:UserAPI or Infrastructure:BlazorSignalR)
+    /// </summary>
+    public string Category { get; set; } = "Application:UserAPI";
 
     /// <summary>
     /// HTTP Methods allowed (GET, POST, etc.)

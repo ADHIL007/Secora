@@ -51,6 +51,21 @@ namespace Secora.Core
             return endpoints;
         }
 
+        private static string Categorize(string? path)
+        {
+            if (string.IsNullOrEmpty(path)) return "Application:UserAPI";
+
+            var normalizedPath = path.StartsWith("/") ? path : "/" + path;
+
+            if (normalizedPath.StartsWith("/_blazor", StringComparison.OrdinalIgnoreCase)) return "Infrastructure:BlazorSignalR";
+            if (normalizedPath.StartsWith("/_framework", StringComparison.OrdinalIgnoreCase)) return "Infrastructure:BlazorWasm";
+            if (normalizedPath.StartsWith("/_content", StringComparison.OrdinalIgnoreCase)) return "Infrastructure:StaticAssets";
+            if (normalizedPath.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase)) return "Infrastructure:Swagger";
+            if (normalizedPath.StartsWith("/Secora", StringComparison.OrdinalIgnoreCase)) return "Infrastructure:Secora";
+
+            return "Application:UserAPI";
+        }
+
         public static SecoraEndpoint? ToSecoraEndpoint(Endpoint endpoint)
         {
             if (endpoint is not RouteEndpoint routeEndpoint)
@@ -75,6 +90,7 @@ namespace Secora.Core
             return new SecoraEndpoint
             {
                 Path = routeEndpoint.RoutePattern.RawText ?? string.Empty,
+                Category = Categorize(routeEndpoint.RoutePattern.RawText),
                 HttpMethods = methods.ToList(),
                 DisplayName = endpoint.DisplayName,
                 RequiresAuthorization = isAuthorized,
