@@ -2,6 +2,7 @@
 @using Secora.Abstractions
 @using Secora.Core
 @inject EndPointScanner Scanner
+@inject EndpointClassifier Classifier
 
 <div class="dashboard">
     <div class="dash-header">
@@ -72,10 +73,10 @@
                             }
                         </td>
                         <td>
-                            @if (ep.Category.StartsWith("Infrastructure"))
+                            @if (EndpointClassifier.IsInfrastructure(ep.Category))
                             {
                                 <span style="font-size: 11px; color: #a855f7; background: #faf5ff; padding: 2px 6px; border-radius: 4px; border: 1px solid #e9d5ff;">
-                                    @ep.Category.Split(':').LastOrDefault()
+                                    @EndpointClassifier.GetDisplayLabel(ep.Category)
                                 </span>
                             }
                             else
@@ -108,11 +109,13 @@
     private string ActiveFilter { get; set; } = "All";
     private bool ShowInfrastructure { get; set; } = false;
     
-    private List<SecoraEndpoint> AllEndpoints = new();
+    // Reference to the scanner's cached list — no copy, no allocation
+    private IReadOnlyList<SecoraEndpoint> AllEndpoints = Array.Empty<SecoraEndpoint>();
 
     protected override void OnInitialized()
     {
-        AllEndpoints = Scanner.GetEndpoints().ToList();
+        // Returns the shared cached list — O(1), zero allocation
+        AllEndpoints = Scanner.GetEndpoints();
     }
     
     protected override void OnParametersSet()
@@ -128,13 +131,14 @@
         ActiveFilter = filter;
     }
 
+    // Streams via LINQ — no intermediate .ToList() allocation.
+    // Blazor's @foreach consumes the IEnumerable lazily.
     private IEnumerable<SecoraEndpoint> FilteredEndpoints => AllEndpoints
-        .Where(e => ShowInfrastructure || e.Category == "Application:UserAPI")
+        .Where(e => ShowInfrastructure || EndpointClassifier.IsApplicationCode(e.Category))
         .Where(e => 
             (ActiveFilter == "All") ||
             (ActiveFilter == "Authenticated" && e.RequiresAuthorization) ||
             (ActiveFilter == "Open" && !e.RequiresAuthorization)
         )
-        .Where(e => string.IsNullOrWhiteSpace(SearchQuery) || e.Path.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase))
-        .ToList();
+        .Where(e => string.IsNullOrWhiteSpace(SearchQuery) || e.Path.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
 }

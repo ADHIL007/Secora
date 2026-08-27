@@ -5,10 +5,14 @@ namespace Secora.Abstractions;
 /// </summary>
 public class SecoraEndpoint
 {
+    private static int _idCounter;
+    private Dictionary<string, object?>? _extendedMetadata;
+
     /// <summary>
-    /// Unique ID for this endpoint (useful for plugin mapping)
+    /// Unique ID for this endpoint (useful for plugin mapping).
+    /// Uses an incrementing counter instead of Guid to avoid 32-byte string allocation per endpoint.
     /// </summary>
-    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string Id { get; set; } = Interlocked.Increment(ref _idCounter).ToString();
 
     /// <summary>
     /// The HTTP Path pattern (e.g., "/api/products/{id}")
@@ -16,9 +20,9 @@ public class SecoraEndpoint
     public string Path { get; set; } = string.Empty;
 
     /// <summary>
-    /// Category of the endpoint (e.g. Application:UserAPI or Infrastructure:BlazorSignalR)
+    /// Classification of this endpoint (Application API vs Infrastructure)
     /// </summary>
-    public string Category { get; set; } = "Application:UserAPI";
+    public EndpointCategory Category { get; set; } = EndpointCategory.ApplicationApi;
 
     /// <summary>
     /// HTTP Methods allowed (GET, POST, etc.)
@@ -52,9 +56,14 @@ public class SecoraEndpoint
     public string? HandlerTypeName { get; set; }
 
     /// <summary>
-    /// Optional: Raw metadata dump for advanced plugin extensibility
+    /// Optional: Raw metadata dump for advanced plugin extensibility.
+    /// Lazy-initialized — no allocation unless a plugin actually writes to it.
     /// </summary>
-    public Dictionary<string, object?> ExtendedMetadata { get; set; } = new();
+    public Dictionary<string, object?> ExtendedMetadata
+    {
+        get => _extendedMetadata ??= new Dictionary<string, object?>();
+        set => _extendedMetadata = value;
+    }
 }
 
 /// <summary>

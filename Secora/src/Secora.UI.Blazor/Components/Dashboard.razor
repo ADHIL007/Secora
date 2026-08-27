@@ -91,20 +91,14 @@
 
     protected override void OnInitialized()
     {
-        var allEndpoints = Scanner.GetEndpoints().ToList();
+        // O(1) — uses pre-computed cached summary, no enumeration
+        var summary = Scanner.GetSummary();
         
-        // Dashboard specifically focuses on User APIs
-        var userEndpoints = allEndpoints.Where(e => e.Category == "Application:UserAPI").ToList();
-        
-        TotalEndpoints = userEndpoints.Count;
-        AuthEndpoints = userEndpoints.Count(e => e.RequiresAuthorization);
-        OpenEndpoints = TotalEndpoints - AuthEndpoints;
-
-        if (TotalEndpoints > 0)
-        {
-            AuthPercentage = Math.Round((double)AuthEndpoints / TotalEndpoints * 100, 1);
-            OpenPercentage = Math.Round((double)OpenEndpoints / TotalEndpoints * 100, 1);
-        }
+        TotalEndpoints = summary.TotalApplicationEndpoints;
+        AuthEndpoints = summary.AuthenticatedEndpoints;
+        OpenEndpoints = summary.OpenEndpoints;
+        AuthPercentage = summary.AuthPercentage;
+        OpenPercentage = summary.OpenPercentage;
     }
 
     private Task SelectFilter(string filter)

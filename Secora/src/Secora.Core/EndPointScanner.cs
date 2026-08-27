@@ -10,28 +10,86 @@ using Secora.Abstractions;
 
 namespace Secora.Core
 {
+    /// <summary>
+    /// Pre-computed summary statistics for the dashboard.
+    /// Avoids the need to enumerate all endpoints just to get counts.
+    /// </summary>
+    public sealed class EndpointScanSummary
+    {
+        public int TotalApplicationEndpoints { get; init; }
+        public int AuthenticatedEndpoints { get; init; }
+        public int OpenEndpoints { get; init; }
+        public int TotalInfrastructureEndpoints { get; init; }
+        public int IgnoredEndpoints { get; init; }
+        public double AuthPercentage { get; init; }
+        public double OpenPercentage { get; init; }
+    }
+
     public class EndPointScanner
     {
         private readonly IEnumerable<EndpointDataSource> _endpointDataSources;
+        private readonly EndpointClassifier _classifier;
 
-        public EndPointScanner(IEnumerable<EndpointDataSource> endpointDataSources)
+        // Lazy cache: endpoints are registered at startup and don't change.
+        // Scan once, serve forever. Thread-safe for concurrent Blazor circuits.
+        private readonly Lazy<IReadOnlyList<SecoraEndpoint>> _cachedEndpoints;
+        private readonly Lazy<EndpointScanSummary> _cachedSummary;
+
+        public EndPointScanner(
+            IEnumerable<EndpointDataSource> endpointDataSources,
+            EndpointClassifier classifier)
         {
             _endpointDataSources = endpointDataSources;
+            _classifier = classifier;
+
+            _cachedEndpoints = new Lazy<IReadOnlyList<SecoraEndpoint>>(
+                ScanEndpoints,
+                LazyThreadSafetyMode.ExecutionAndPublication);
+
+            _cachedSummary = new Lazy<EndpointScanSummary>(
+                () => ComputeSummary(_cachedEndpoints.Value),
+                LazyThreadSafetyMode.ExecutionAndPublication);
         }
+
+        /// <summary>
+        /// Returns the cached, read-only list of all discovered endpoints.
+        /// Safe to call from multiple Blazor circuits — scans only once.
+        /// </summary>
+        public IReadOnlyList<SecoraEndpoint> GetEndpoints() => _cachedEndpoints.Value;
+
+        /// <summary>
+        /// Returns pre-computed summary statistics.
+        /// Dashboard should use this instead of enumerating GetEndpoints().
+        /// </summary>
+        public EndpointScanSummary GetSummary() => _cachedSummary.Value;
 
         public string GetEndpointsJson()
         {
-            var endpoints = GetEndpoints();
-            return JsonSerializer.Serialize(endpoints, new JsonSerializerOptions 
+            return JsonSerializer.Serialize(_cachedEndpoints.Value, new JsonSerializerOptions 
             { 
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 WriteIndented = true 
             });
         }
 
-        public IEnumerable<SecoraEndpoint> GetEndpoints()
+        /// <summary>
+        /// Performs the actual scan. Called exactly once via Lazy&lt;T&gt;.
+        /// 
+        /// Memory strategy:
+        ///   • Pre-sizes the list based on estimated count to avoid list resizing.
+        ///   • Returns IReadOnlyList to prevent callers from adding/removing.
+        ///   • Each SecoraEndpoint is allocated once and shared across all consumers.
+        /// </summary>
+        private IReadOnlyList<SecoraEndpoint> ScanEndpoints()
         {
-            var endpoints = new List<SecoraEndpoint>();
+            // Pre-count to avoid list resizing for large apps
+            int estimatedCount = 0;
+            foreach (var dataSource in _endpointDataSources)
+            {
+                estimatedCount += dataSource.Endpoints.Count;
+            }
+
+            var endpoints = new List<SecoraEndpoint>(estimatedCount);
 
             foreach (var dataSource in _endpointDataSources)
             {
@@ -39,7 +97,7 @@ namespace Secora.Core
                 {
                     if (endpoint is RouteEndpoint routeEndpoint)
                     {
-                        var secoraEndpoint = ToSecoraEndpoint(routeEndpoint);
+                        var secoraEndpoint = MapEndpoint(routeEndpoint);
                         if (secoraEndpoint != null)
                         {
                             endpoints.Add(secoraEndpoint);
@@ -47,56 +105,91 @@ namespace Secora.Core
                     }
                 }
             }
+
+            // Trim excess capacity if we over-estimated (non-RouteEndpoints skipped)
+            endpoints.TrimExcess();
             
-            return endpoints;
+            return endpoints.AsReadOnly();
         }
 
-        private static string Categorize(string? path)
+        /// <summary>
+        /// Computes summary stats in a single pass over the cached list.
+        /// </summary>
+        private static EndpointScanSummary ComputeSummary(IReadOnlyList<SecoraEndpoint> endpoints)
         {
-            if (string.IsNullOrEmpty(path)) return "Application:UserAPI";
+            int appTotal = 0, appAuth = 0, infraTotal = 0, ignoredTotal = 0;
 
-            var normalizedPath = path.StartsWith("/") ? path : "/" + path;
+            for (int i = 0; i < endpoints.Count; i++)
+            {
+                var ep = endpoints[i];
 
-            if (normalizedPath.StartsWith("/_blazor", StringComparison.OrdinalIgnoreCase)) return "Infrastructure:BlazorSignalR";
-            if (normalizedPath.StartsWith("/_framework", StringComparison.OrdinalIgnoreCase)) return "Infrastructure:BlazorWasm";
-            if (normalizedPath.StartsWith("/_content", StringComparison.OrdinalIgnoreCase)) return "Infrastructure:StaticAssets";
-            if (normalizedPath.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase)) return "Infrastructure:Swagger";
-            if (normalizedPath.StartsWith("/Secora", StringComparison.OrdinalIgnoreCase)) return "Infrastructure:Secora";
+                if (EndpointClassifier.IsApplicationCode(ep.Category))
+                {
+                    appTotal++;
+                    if (ep.RequiresAuthorization)
+                        appAuth++;
+                }
+                else if (ep.Category == EndpointCategory.HiddenApi)
+                {
+                    ignoredTotal++;
+                }
+                else
+                {
+                    infraTotal++;
+                }
+            }
 
-            return "Application:UserAPI";
+            int appOpen = appTotal - appAuth;
+
+            return new EndpointScanSummary
+            {
+                TotalApplicationEndpoints = appTotal,
+                AuthenticatedEndpoints = appAuth,
+                OpenEndpoints = appOpen,
+                TotalInfrastructureEndpoints = infraTotal,
+                IgnoredEndpoints = ignoredTotal,
+                AuthPercentage = appTotal > 0 ? Math.Round((double)appAuth / appTotal * 100, 1) : 0,
+                OpenPercentage = appTotal > 0 ? Math.Round((double)appOpen / appTotal * 100, 1) : 0
+            };
         }
 
-        public static SecoraEndpoint? ToSecoraEndpoint(Endpoint endpoint)
+        /// <summary>
+        /// Maps a single RouteEndpoint to a SecoraEndpoint.
+        /// Allocates only what's needed — empty collections use Array.Empty via list init.
+        /// </summary>
+        private SecoraEndpoint MapEndpoint(RouteEndpoint routeEndpoint)
         {
-            if (endpoint is not RouteEndpoint routeEndpoint)
-                return null;
+            var httpMethodMeta = routeEndpoint.Metadata.GetMetadata<IHttpMethodMetadata>();
+            var methods = httpMethodMeta?.HttpMethods;
 
-            var httpMethodMeta = endpoint.Metadata.GetMetadata<IHttpMethodMetadata>();
-            var methods = httpMethodMeta?.HttpMethods ?? new List<string> { "GET" };
+            var authData = routeEndpoint.Metadata.OfType<IAuthorizeData>().FirstOrDefault();
 
-            var authData = endpoint.Metadata.OfType<IAuthorizeData>().FirstOrDefault();
-            bool isAuthorized = authData != null;
+            var responseMeta = routeEndpoint.Metadata.OfType<IProducesResponseTypeMetadata>();
+            List<SecoraResponseType>? responseTypes = null;
 
-            var responseTypes = endpoint.Metadata
-                .OfType<IProducesResponseTypeMetadata>()
-                .Select(m => new SecoraResponseType
+            foreach (var m in responseMeta)
+            {
+                responseTypes ??= new List<SecoraResponseType>();
+                responseTypes.Add(new SecoraResponseType
                 {
                     StatusCode = m.StatusCode,
                     TypeName = m.Type?.Name,
                     ContentTypes = m.ContentTypes?.ToList() ?? new List<string>()
-                })
-                .ToList();
+                });
+            }
+
+            var rawPath = routeEndpoint.RoutePattern.RawText ?? string.Empty;
 
             return new SecoraEndpoint
             {
-                Path = routeEndpoint.RoutePattern.RawText ?? string.Empty,
-                Category = Categorize(routeEndpoint.RoutePattern.RawText),
-                HttpMethods = methods.ToList(),
-                DisplayName = endpoint.DisplayName,
-                RequiresAuthorization = isAuthorized,
+                Path = rawPath,
+                Category = _classifier.Categorize(routeEndpoint),
+                HttpMethods = methods?.ToList() ?? new List<string> { "GET" },
+                DisplayName = routeEndpoint.DisplayName,
+                RequiresAuthorization = authData != null,
                 AuthPolicy = authData?.Policy,
-                ResponseTypes = responseTypes,
-                HandlerTypeName = endpoint.RequestDelegate?.Target?.GetType().Name
+                ResponseTypes = responseTypes ?? new List<SecoraResponseType>(),
+                HandlerTypeName = routeEndpoint.RequestDelegate?.Target?.GetType().Name
             };
         }
     }
