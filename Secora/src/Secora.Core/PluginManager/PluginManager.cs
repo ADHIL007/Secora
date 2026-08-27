@@ -14,29 +14,33 @@ namespace Secora.Core.PluginManager
     public class PluginManager : IPluginManager
     {
         private readonly IPluginLoader _pluginLoader;
+        private readonly List<ISecoraPlugin> _plugins = new();
+        private readonly Dictionary<ISecoraPlugin, string> _isolationClasses = new();
+        public IReadOnlyCollection<ISecoraPlugin> Plugins => _plugins.AsReadOnly();
+        public string AggregatedCss { get; private set; } = string.Empty;
+
         public PluginManager(IPluginLoader pluginLoader)
         {
-
             _pluginLoader = pluginLoader;
             Initialize();
-
         }
-        private readonly List<ISecoraPlugin> _plugins = new();
 
-        public IReadOnlyCollection<ISecoraPlugin> Plugins => _plugins;
-
-        public string AggregatedCss { get; private set; } = string.Empty;
+        public string GetCssIsolationClass(ISecoraPlugin plugin) =>
+            _isolationClasses.TryGetValue(plugin, out var cssClass) ? cssClass : string.Empty;
 
         public void Initialize()
         {
-            var cssBuilder = new StringBuilder();
+            _plugins.Clear();
+            _isolationClasses.Clear();
+            var cssBuilder = new System.Text.StringBuilder();
 
             foreach (var plugin in _pluginLoader.DiscoverPlugins())
             {
                 _plugins.Add(plugin);
 
                 var assembly = plugin.GetType().Assembly;
-                string cssClassName = plugin.Name.Replace(" ", "").ToLowerInvariant();
+                string cssClassName = "sp-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+                _isolationClasses[plugin] = cssClassName;
 
                 foreach (var resourceName in assembly.GetManifestResourceNames().Where(r => r.EndsWith(".css", StringComparison.OrdinalIgnoreCase)))
                 {

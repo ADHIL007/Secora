@@ -9,5 +9,6 @@ namespace Secora.Abstractions
     {
         IReadOnlyCollection<ISecoraPlugin> Plugins { get; }
         string AggregatedCss { get; }
+        string GetCssIsolationClass(ISecoraPlugin plugin);
     }
 }

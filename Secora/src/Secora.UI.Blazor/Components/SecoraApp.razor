@@ -26,7 +26,9 @@
 
             @if (SelectedPlugin.Page?.ComponentType is Type componentType)
             {
-                <DynamicComponent Type="componentType" />
+                <div class="@PluginManager.GetCssIsolationClass(SelectedPlugin)">
+                    <DynamicComponent Type="componentType" />
+                </div>
             }
             else
             {

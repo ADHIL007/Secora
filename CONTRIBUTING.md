@@ -55,19 +55,14 @@ public class MyAwesomePlugin : ISecoraPlugin
 
 ## 3. Create the UI Component
 
-Create a Blazor component (e.g., `MyAwesomePage.razor`) that will render your plugin's user interface. 
-
-> [!IMPORTANT]
-> **Root Container Class**: You must wrap your entire component in a root `<div>` where the class name is your plugin's `Name` property in **lowercase with all spaces removed**. (e.g., "My Awesome" -> `myawesome`).
+Create a Blazor component (e.g., `MyAwesomePage.razor`) that will render your plugin's user interface. You don't need to add any special wrappers to this component.
 
 ```razor
 @using Microsoft.AspNetCore.Components
 
-<div class="myawesome">
-    <h2>My Awesome Plugin</h2>
-    <p>Hello from the dynamic plugin!</p>
-    <button class="sp-btn sp-btn-primary">Click Me</button>
-</div>
+<h2>My Awesome Plugin</h2>
+<p>Hello from the dynamic plugin!</p>
+<button class="sp-btn sp-btn-primary">Click Me</button>
 ```
 
 ---
@@ -113,7 +108,7 @@ You do **not** need to use Blazor's standard CSS isolation (`.razor.css`). Inste
    </ItemGroup>
    ```
 
-**How it works:** When the Secora `PluginManager` loads your plugin, it dynamically extracts this embedded CSS and wraps it in a CSS nested block matching your plugin's name (`.myawesome { ... }`). Because you wrapped your Razor component in `<div class="myawesome">`, all your styles will perfectly apply *only* to your plugin!
+**How it works:** When the Secora `PluginManager` loads your plugin, it dynamically extracts this embedded CSS and wraps it in a unique CSS block (e.g., `.sp-8a4d7f12 { ... }`). The host application then automatically renders your Razor component inside a `<div class="sp-8a4d7f12">`. Because the host wraps it for you, all your styles will perfectly apply *only* to your plugin with zero effort!
 
 ---
 
