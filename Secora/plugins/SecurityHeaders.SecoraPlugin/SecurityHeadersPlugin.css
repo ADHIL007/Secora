@@ -1,11 +1,6 @@
 /* ═══════════════════════════════════════════
    Security Headers Plugin Page
 ═══════════════════════════════════════════ */
-.security-headers-page {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
 
 /* Hero */
 .sp-hero {

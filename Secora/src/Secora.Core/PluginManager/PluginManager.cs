@@ -36,6 +36,8 @@ namespace Secora.Core.PluginManager
                 _plugins.Add(plugin);
 
                 var assembly = plugin.GetType().Assembly;
+                string cssClassName = plugin.Name.Replace(" ", "").ToLowerInvariant();
+
                 foreach (var resourceName in assembly.GetManifestResourceNames().Where(r => r.EndsWith(".css", StringComparison.OrdinalIgnoreCase)))
                 {
                     using var stream = assembly.GetManifestResourceStream(resourceName);
@@ -43,7 +45,9 @@ namespace Secora.Core.PluginManager
                     {
                         using var reader = new StreamReader(stream);
                         cssBuilder.AppendLine($"/* Loaded from {assembly.GetName().Name} -> {resourceName} */");
+                        cssBuilder.AppendLine($".{cssClassName} {{");
                         cssBuilder.AppendLine(reader.ReadToEnd());
+                        cssBuilder.AppendLine("}");
                     }
                 }
             }
