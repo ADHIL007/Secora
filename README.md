@@ -134,3 +134,5 @@ To deploy your plugin locally:
 The `PluginManager` will automatically discover your DLL, aggregate your CSS, and mount your Blazor component into the Secora UI!
 
 </details>
+# Secora Internal Architecture
+<img width="2665" height="1263" alt="Secora-internal-arc" src="https://github.com/user-attachments/assets/8ca7b19c-91e0-4e81-a375-040dc42a5121" />
