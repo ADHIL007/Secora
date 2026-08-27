@@ -288,9 +288,9 @@ body {
 }
 
 /* ═══════════════════════════════════════════
-   Sample Plugin Page
+   Security Headers Plugin Page
 ═══════════════════════════════════════════ */
-.sample-page {
+.security-headers-page {
     display: flex;
     flex-direction: column;
     gap: 20px;
