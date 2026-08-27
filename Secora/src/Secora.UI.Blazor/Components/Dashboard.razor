@@ -1,0 +1,108 @@
+@namespace Secora.UI.Blazor.Components
+@using Secora.Abstractions
+@using Secora.Core
+@inject IPluginManager PluginManager
+@inject EndPointScanner Scanner
+
+<div class="dashboard">
+    <div class="dash-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 class="dash-title">Dashboard</h1>
+            <p class="dash-subtitle">Overview of your application security posture</p>
+        </div>
+    </div>
+
+    <div class="dash-stats">
+        <!-- Tile 1: Total Endpoints -->
+        <div class="dash-stat-card clickable-card" @onclick='() => SelectFilter("All")'>
+            <div class="dash-stat-icon icon-blue">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="5" r="3"></circle>
+                    <circle cx="6" cy="19" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="10.42" y2="9.85"></line>
+                    <line x1="15.41" y1="13.51" x2="13.58" y2="9.85"></line>
+                </svg>
+            </div>
+            <div class="dash-stat-body">
+                <span class="dash-stat-label">Total Endpoints</span>
+                <span class="dash-stat-value">@TotalEndpoints</span>
+                <span class="dash-stat-label" style="text-transform:none; opacity: 0.8; margin-top: 2px;">Discovered</span>
+            </div>
+        </div>
+
+        <!-- Tile 2: Authenticated Endpoints -->
+        <div class="dash-stat-card clickable-card" @onclick='() => SelectFilter("Authenticated")'>
+            <div class="dash-stat-icon icon-green">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+            </div>
+            <div class="dash-stat-body">
+                <span class="dash-stat-label">Authenticated Endpoints</span>
+                <span class="dash-stat-value">@AuthEndpoints</span>
+                <span class="dash-stat-label" style="text-transform:none; opacity: 0.8; margin-top: 2px;">@AuthPercentage% Protected</span>
+            </div>
+        </div>
+
+        <!-- Tile 3: Open Endpoints -->
+        <div class="dash-stat-card clickable-card" @onclick='() => SelectFilter("Open")'>
+            <div class="dash-stat-icon icon-yellow">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+            </div>
+            <div class="dash-stat-body">
+                <span class="dash-stat-label">Open Endpoints</span>
+                <span class="dash-stat-value">@OpenEndpoints</span>
+                <span class="dash-stat-label" style="text-transform:none; opacity: 0.8; margin-top: 2px;">@OpenPercentage% Unprotected</span>
+            </div>
+        </div>
+
+        <!-- Tile 4: Open Findings -->
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon icon-red">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            <div class="dash-stat-body">
+                <span class="dash-stat-label">Open Findings</span>
+                <span class="dash-stat-value">0</span>
+                <span class="dash-stat-label" style="text-transform:none; opacity: 0.8; margin-top: 2px;">0 High / 0 Critical</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnFilterSelected { get; set; }
+
+    private int TotalEndpoints = 0;
+    private int AuthEndpoints = 0;
+    private int OpenEndpoints = 0;
+    private double AuthPercentage = 0;
+    private double OpenPercentage = 0;
+
+    protected override void OnInitialized()
+    {
+        // O(1) — uses pre-computed cached summary, no enumeration
+        var summary = Scanner.GetSummary();
+        
+        TotalEndpoints = summary.TotalApplicationEndpoints;
+        AuthEndpoints = summary.AuthenticatedEndpoints;
+        OpenEndpoints = summary.OpenEndpoints;
+        AuthPercentage = summary.AuthPercentage;
+        OpenPercentage = summary.OpenPercentage;
+    }
+
+    private Task SelectFilter(string filter)
+    {
+        return OnFilterSelected.InvokeAsync(filter);
+    }
+}

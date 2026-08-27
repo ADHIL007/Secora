@@ -1,0 +1,26 @@
+@page "/Secora"
+@using Secora.Abstractions
+@using Secora.UI.Blazor.Components
+@inject IPluginManager PluginManager
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secora</title>
+    <link rel="stylesheet" href="_content/Secora.UI.Blazor/secora.css?v=@DateTime.Now.Ticks" />
+    <base href="/" />
+    @if (!string.IsNullOrWhiteSpace(PluginManager.AggregatedCss))
+    {
+        <style>
+            @((MarkupString)PluginManager.AggregatedCss)
+        </style>
+    }
+</head>
+<body>
+    <SecoraApp @rendermode="RenderMode.InteractiveServer" />
+
+    <script src="_framework/blazor.server.js"></script>
+</body>
+</html>

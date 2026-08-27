@@ -1,0 +1,75 @@
+@namespace Secora.UI.Blazor.Components
+@using Secora.Abstractions
+@inject IPluginManager PluginManager
+
+<div class="secora-shell">
+
+    <Sidebar ActiveView="@ActiveView"
+             OnNavigate="OnNavigate"
+             OnNavigatePlugin="OnNavigatePlugin" />
+
+    <main class="secora-main">
+        @if (ActiveView == "dashboard")
+        {
+            <Dashboard OnFilterSelected="HandleFilterSelected" />
+        }
+        else if (ActiveView == "endpoint-discovery")
+        {
+            <EndpointDiscovery InitialFilter="@DiscoveryFilter" />
+        }
+        else if (SelectedPlugin is not null)
+        {
+            <div class="main-header">
+                <h1 class="main-title">@(SelectedPlugin.Page?.Title ?? SelectedPlugin.Name)</h1>
+                <p class="main-subtitle">by @SelectedPlugin.Author &nbsp;·&nbsp; v@SelectedPlugin.Version</p>
+            </div>
+
+            @if (SelectedPlugin.Page?.ComponentType is Type componentType)
+            {
+                <DynamicComponent Type="componentType" />
+            }
+            else
+            {
+                <div class="plugin-detail-card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="card-title">@SelectedPlugin.Name</div>
+                            <div class="card-author">by @SelectedPlugin.Author</div>
+                        </div>
+                        <span class="card-version-pill">v@SelectedPlugin.Version</span>
+                    </div>
+                    <p class="card-description">@SelectedPlugin.Description</p>
+                </div>
+            }
+        }
+    </main>
+
+</div>
+
+@code {
+    private string ActiveView { get; set; } = "dashboard";
+    private ISecoraPlugin? SelectedPlugin { get; set; }
+    private string DiscoveryFilter { get; set; } = "All";
+
+    private void OnNavigate(string view)
+    {
+        ActiveView = view;
+        SelectedPlugin = null;
+        if (view == "endpoint-discovery")
+        {
+            DiscoveryFilter = "All";
+        }
+    }
+
+    private void OnNavigatePlugin(ISecoraPlugin plugin)
+    {
+        SelectedPlugin = plugin;
+        ActiveView = plugin.Name;
+    }
+
+    private void HandleFilterSelected(string filter)
+    {
+        DiscoveryFilter = filter;
+        ActiveView = "endpoint-discovery";
+    }
+}
