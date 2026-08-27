@@ -11,6 +11,12 @@
     <title>Secora</title>
     <link rel="stylesheet" href="_content/Secora.UI.Blazor/secora.css?v=@DateTime.Now.Ticks" />
     <base href="/" />
+    @if (!string.IsNullOrWhiteSpace(PluginManager.AggregatedCss))
+    {
+        <style>
+            @((MarkupString)PluginManager.AggregatedCss)
+        </style>
+    }
 </head>
 <body>
     <SecoraApp @rendermode="RenderMode.InteractiveServer" />
